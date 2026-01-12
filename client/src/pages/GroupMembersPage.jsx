@@ -14,15 +14,20 @@ function GroupMembersPage() {
   const [members, setMembers] = useState([]);
   const [email, setEmail] = useState("");
   const [newRole, setNewRole] = useState("viewer");
+  const [loading, setLoading] = useState(true);
+
   const navigate = useNavigate();
 
   /* 🔹 LOAD MEMBERS */
   const loadMembers = async () => {
     try {
+      setLoading(true);
       const res = await getGroupMembers();
       setMembers(Array.isArray(res) ? res : []);
     } catch (err) {
       toast.error("Failed to load members");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,17 +38,17 @@ function GroupMembersPage() {
         const res = await getMyRole();
         if (res.role !== "admin") {
           toast.error("Admin access required");
-          navigate("/groups");
+          navigate("/groups", { replace: true });
         } else {
           loadMembers();
         }
       } catch {
-        navigate("/login");
+        navigate("/login", { replace: true });
       }
     };
 
     checkRole();
-  }, []);
+  }, [navigate]);
 
   /* 🔹 ADD MEMBER */
   const handleAddMember = async () => {
@@ -103,70 +108,82 @@ function GroupMembersPage() {
             </button>
           </div>
 
-          {/* MEMBERS LIST */}
+          {/* 🔹 MEMBERS AREA */}
           <div className="space-y-2">
-            {members.map((m) => (
-              <div
-                key={m.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border rounded p-2"
-              >
-                <span className="text-sm">{m.email}</span>
 
-                <div className="flex items-center gap-2">
-                  <select
-                    value={m.role}
-                    onChange={async (e) => {
-                      const role = e.target.value;
-
-                      if (
-                        !window.confirm(
-                          `Change role of ${m.email} to "${role}"?`
-                        )
-                      )
-                        return;
-
-                      try {
-                        await updateMemberRole(m.id, role);
-                        toast.success("Role updated");
-                        loadMembers();
-                      } catch (err) {
-                        toast.error(err.message || "Update failed");
-                      }
-                    }}
-                    className="border rounded px-2 py-1 text-sm"
-                  >
-                    <option value="viewer">Viewer</option>
-                    <option value="editor">Editor</option>
-                    <option value="admin">Admin</option>
-                  </select>
-
-                  <button
-                    onClick={async () => {
-                      if (
-                        !window.confirm(
-                          `Remove ${m.email} from this group?`
-                        )
-                      )
-                        return;
-
-                      try {
-                        await removeMember(m.id);
-                        toast.success("Member removed");
-                        loadMembers();
-                      } catch (err) {
-                        toast.error(err.message || "Remove failed");
-                      }
-                    }}
-                    className="text-red-600 text-sm hover:underline"
-                  >
-                    Remove
-                  </button>
-                </div>
+            {/* ⏳ LOADING */}
+            {loading && (
+              <div className="text-center py-8 text-gray-500 animate-pulse">
+                <div className="text-3xl mb-2">⏳</div>
+                <p className="font-medium">Please wait a second…</p>
               </div>
-            ))}
+            )}
 
-            {members.length === 0 && (
-              <p className="text-sm text-gray-500 text-center">
+            {/* 👥 MEMBERS LIST */}
+            {!loading &&
+              members.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border rounded p-2"
+                >
+                  <span className="text-sm break-all">{m.email}</span>
+
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={m.role}
+                      onChange={async (e) => {
+                        const role = e.target.value;
+
+                        if (
+                          !window.confirm(
+                            `Change role of ${m.email} to "${role}"?`
+                          )
+                        )
+                          return;
+
+                        try {
+                          await updateMemberRole(m.id, role);
+                          toast.success("Role updated");
+                          loadMembers();
+                        } catch (err) {
+                          toast.error(err.message || "Update failed");
+                        }
+                      }}
+                      className="border rounded px-2 py-1 text-sm"
+                    >
+                      <option value="viewer">Viewer</option>
+                      <option value="editor">Editor</option>
+                      <option value="admin">Admin</option>
+                    </select>
+
+                    <button
+                      onClick={async () => {
+                        if (
+                          !window.confirm(
+                            `Remove ${m.email} from this group?`
+                          )
+                        )
+                          return;
+
+                        try {
+                          await removeMember(m.id);
+                          toast.success("Member removed");
+                          loadMembers();
+                        } catch (err) {
+                          toast.error(err.message || "Remove failed");
+                        }
+                      }}
+                      className="text-red-600 text-sm hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+            {/* 📭 EMPTY STATE */}
+            {!loading && members.length === 0 && (
+              <p className="text-sm text-gray-500 text-center py-6">
                 No members found
               </p>
             )}
