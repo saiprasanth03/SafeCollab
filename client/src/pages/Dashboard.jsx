@@ -303,11 +303,11 @@ function Dashboard() {
               <div className="flex items-start gap-3">
                 {/* TEXT */}
                 <div className="flex-1 min-w-0">
-                  <h2 className="font-semibold text-gray-800 break-words">
+                  <h2 className="font-semibold text-gray-800 break-words selectable">
                     {item.title}
                   </h2>
 
-                  <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap break-words">
+                  <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap break-words selectable">
                     {item.content}
                   </p>
                 </div>

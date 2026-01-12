@@ -1,0 +1,11 @@
+/* Disable text selection globally */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
+.selectable {
+  user-select: text;
+  -webkit-user-select: text;
+  -ms-user-select: text;
+}
