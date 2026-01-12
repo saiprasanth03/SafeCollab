@@ -98,29 +98,28 @@ function Register() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const res = await registerUser({ email, password });
+  try {
+    const res = await registerUser({ email, password });
 
-      if (res?.message === "User registered successfully") {
-        toast.success("Registration successful 🎉 Please login");
-        navigate("/login", { replace: true });
-      } else {
-        toast.error(res?.message || "Registration failed");
-      }
-    } catch (err) {
-      toast.error(
-        err.message?.includes("fetch")
-          ? "Server is waking up, please try again ⏳"
-          : err.message || "Something went wrong"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    // ✅ Backend success = no error thrown
+    toast.success("Registration successful 🎉 Please login");
+
+    navigate("/login", { replace: true });
+  } catch (err) {
+    toast.error(
+      err.message?.includes("already")
+        ? err.message
+        : "Registration failed"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <PageWrapper>
