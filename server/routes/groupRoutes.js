@@ -7,9 +7,9 @@ import { requirePermission } from "../middleware/requirePermission.js";
 
 const router = express.Router();
 
-/**
- * GET all groups of logged-in user
- */
+/* =========================================================
+   GET: All groups of logged-in user
+========================================================= */
 router.get("/my-groups", protect, async (req, res) => {
   try {
     const memberships = await GroupMember.find({
@@ -19,25 +19,24 @@ router.get("/my-groups", protect, async (req, res) => {
     const groups = memberships.map((m) => ({
       groupId: m.groupId._id,
       name: m.groupId.name,
-      role: m.role, // admin | editor | viewer
+      role: m.role,
     }));
 
     res.json(groups);
-  } catch (error) {
-    console.error("Error fetching groups:", error);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Failed to fetch groups" });
   }
 });
 
-/**
- * CREATE a new group
- * Creator automatically becomes ADMIN
- */
+/* =========================================================
+   POST: Create group (creator = admin)
+========================================================= */
 router.post("/create", protect, async (req, res) => {
   try {
     const { name } = req.body;
 
-    if (!name || !name.trim()) {
+    if (!name?.trim()) {
       return res.status(400).json({ message: "Group name is required" });
     }
 
@@ -56,16 +55,15 @@ router.post("/create", protect, async (req, res) => {
       message: "Group created successfully",
       group,
     });
-  } catch (error) {
-    console.error("Error creating group:", error);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Failed to create group" });
   }
 });
 
-/**
- * ADD MEMBER TO GROUP
- * Permission required: manageMembers (ADMIN only)
- */
+/* =========================================================
+   POST: Add member (ADMIN only)
+========================================================= */
 router.post(
   "/add-member",
   protect,
@@ -76,7 +74,7 @@ router.post(
       const groupId = req.headers["x-group-id"];
 
       if (!groupId) {
-        return res.status(400).json({ message: "Group ID missing" });
+        return res.status(400).json({ message: "Group not selected" });
       }
 
       if (!email) {
@@ -87,50 +85,55 @@ router.post(
         return res.status(400).json({ message: "Invalid role" });
       }
 
+      // ✅ USER MUST BE REGISTERED
       const user = await User.findOne({ email });
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(404).json({
+          message: "User not registered. Ask them to sign up first.",
+        });
       }
 
-      const exists = await GroupMember.findOne({
+      // ✅ PREVENT DUPLICATE ADD
+      const alreadyMember = await GroupMember.findOne({
         userId: user._id,
         groupId,
       });
 
-      if (exists) {
-        return res.status(400).json({ message: "Already a member" });
+      if (alreadyMember) {
+        return res.status(400).json({
+          message: "User is already a member of this group",
+        });
       }
 
       await GroupMember.create({
         userId: user._id,
         groupId,
-        role: role || "viewer", // default = read-only
+        role: role || "viewer",
       });
 
-      res.json({ message: "User added to group" });
+      res.json({ message: "Member added successfully" });
     } catch (err) {
-      console.error("Error adding member:", err);
+      console.error(err);
       res.status(500).json({ message: "Failed to add member" });
     }
   }
 );
 
-/**
- * GET role of current user in active group
- */
+/* =========================================================
+   GET: My role in active group
+========================================================= */
 router.get(
   "/my-role",
   protect,
   requirePermission("read"),
-  async (req, res) => {
+  (req, res) => {
     res.json({ role: req.memberRole });
   }
 );
 
-/**
- * GET all members of active group
- * ADMIN only
- */
+/* =========================================================
+   GET: All members of group (ADMIN only)
+========================================================= */
 router.get(
   "/members",
   protect,
@@ -140,7 +143,7 @@ router.get(
       const groupId = req.headers["x-group-id"];
 
       if (!groupId) {
-        return res.status(400).json({ message: "Group ID missing" });
+        return res.status(400).json({ message: "Group not selected" });
       }
 
       const members = await GroupMember.find({ groupId }).populate(
@@ -155,16 +158,16 @@ router.get(
           role: m.role,
         }))
       );
-    } catch (error) {
-      console.error("Error fetching members:", error);
+    } catch (err) {
+      console.error(err);
       res.status(500).json({ message: "Failed to fetch members" });
     }
   }
 );
 
-/**
- * UPDATE member role (ADMIN only)
- */
+/* =========================================================
+   PUT: Update member role (ADMIN only)
+========================================================= */
 router.put(
   "/member/:memberId",
   protect,
@@ -183,14 +186,13 @@ router.put(
         return res.status(404).json({ message: "Member not found" });
       }
 
-      // 🚨 HARD BLOCK: admin changing own role
+      // 🚨 ADMIN CANNOT REMOVE OWN ADMIN ROLE
       if (
         member.userId.toString() === req.user.id &&
         role !== "admin"
       ) {
         return res.status(400).json({
-          message:
-            "You cannot remove your own admin access. This action is blocked.",
+          message: "You cannot remove your own admin access",
         });
       }
 
@@ -198,16 +200,16 @@ router.put(
       await member.save();
 
       res.json({ message: "Role updated successfully" });
-    } catch (error) {
-      console.error("Error updating role:", error);
+    } catch (err) {
+      console.error(err);
       res.status(500).json({ message: "Failed to update role" });
     }
   }
 );
 
-/**
- * REMOVE member from group (ADMIN only)
- */
+/* =========================================================
+   DELETE: Remove member (ADMIN only)
+========================================================= */
 router.delete(
   "/member/:memberId",
   protect,
@@ -220,7 +222,7 @@ router.delete(
         return res.status(404).json({ message: "Member not found" });
       }
 
-      // 🚨 Prevent admin removing themselves
+      // 🚨 ADMIN CANNOT REMOVE THEMSELVES
       if (member.userId.toString() === req.user.id) {
         return res.status(400).json({
           message: "You cannot remove yourself from the group",
@@ -228,43 +230,41 @@ router.delete(
       }
 
       await member.deleteOne();
-      res.json({ message: "Member removed" });
-    } catch (error) {
-      console.error("Error removing member:", error);
+      res.json({ message: "Member removed successfully" });
+    } catch (err) {
+      console.error(err);
       res.status(500).json({ message: "Failed to remove member" });
     }
   }
 );
-router.delete(
-  "/:groupId",
-  protect,
-  async (req, res) => {
-    try {
-      const { groupId } = req.params;
 
-      // check admin manually
-      const admin = await GroupMember.findOne({
-        groupId,
-        userId: req.user.id,
-        role: "admin",
+/* =========================================================
+   DELETE: Delete group (ADMIN only)
+========================================================= */
+router.delete("/:groupId", protect, async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    const admin = await GroupMember.findOne({
+      groupId,
+      userId: req.user.id,
+      role: "admin",
+    });
+
+    if (!admin) {
+      return res.status(403).json({
+        message: "Only admin can delete the group",
       });
-
-      if (!admin) {
-        return res.status(403).json({
-          message: "Only admin can delete group",
-        });
-      }
-
-      await Group.findByIdAndDelete(groupId);
-      await GroupMember.deleteMany({ groupId });
-
-      res.json({ message: "Group deleted successfully" });
-    } catch (error) {
-      console.error("Delete group error:", error);
-      res.status(500).json({ message: "Failed to delete group" });
     }
-  }
-);
 
+    await Group.findByIdAndDelete(groupId);
+    await GroupMember.deleteMany({ groupId });
+
+    res.json({ message: "Group deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to delete group" });
+  }
+});
 
 export default router;
