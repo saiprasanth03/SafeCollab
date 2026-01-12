@@ -29,8 +29,13 @@ function Login() {
 
       }
     } catch (error) {
-      console.error("Login error:", error);
-      alert("Something went wrong. Please try again.");
+      // console.error("Login error:", error);
+      // alert("Something went wrong. Please try again.");
+        toast.error(
+          err.message.includes("fetch")
+            ? "Server is waking up, please try again in 10 seconds ⏳"
+            : err.message
+        );
     } finally {
       setLoading(false);
     }

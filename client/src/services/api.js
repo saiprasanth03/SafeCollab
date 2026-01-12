@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
+
 const getHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem("token")}`,
   "x-group-id": localStorage.getItem("activeGroupId"),
@@ -23,13 +24,29 @@ export const registerUser = async (data) => {
   return res.json();
 };
 
+// export const loginUser = async (data) => {
+//   const res = await fetch(`${API_URL}/auth/login`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify(data),
+//   });
+//   return res.json();
+// };
+
 export const loginUser = async (data) => {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  return res.json();
+
+  const result = await res.json();
+
+  if (!res.ok) {
+    throw new Error(result.message || "Login failed");
+  }
+
+  return result;
 };
 
 export const getMyGroups = async () => {
