@@ -5,6 +5,7 @@ import "./index.css";
 import { Toaster } from "react-hot-toast";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
+ <div className="no-select">  
   <React.StrictMode>
     <App />
     <Toaster
@@ -19,4 +20,5 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       }}
     />
   </React.StrictMode>
+ </div> 
 );

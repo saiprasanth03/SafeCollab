@@ -30,7 +30,7 @@ function App() {
   }
 
   return (
-   <div className="no-select"> 
+   
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Splash />} />
@@ -43,7 +43,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
-   </div>
+
   );
 }
 
