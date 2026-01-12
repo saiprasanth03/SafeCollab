@@ -17,16 +17,15 @@ function Login() {
     try {
       const res = await loginUser({ email, password });
 
-      console.log("LOGIN RESPONSE:", res); // 🔍 IMPORTANT DEBUG
-
       if (res?.token) {
-        localStorage.setItem("token", res.token); // ✅ STORE TOKEN
-        localStorage.setItem("userEmail", email); 
-        toast.success("Login successful 🎉");
-        navigate("/groups");                      // ✅ REDIRECT
-      } else {
-        toast.error(res.message || "Login failed");
+        // ✅ STORE AUTH DATA
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("userEmail", email);
 
+        toast.success("Login successful 🎉");
+        navigate("/groups"); // ✅ REDIRECT
+      } else {
+        toast.error(res?.message || "Login failed");
       }
     } catch (error) {
       // console.error("Login error:", error);
