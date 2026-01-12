@@ -16,19 +16,27 @@ function Dashboard() {
   const [content, setContent] = useState("");
   const [role, setRole] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
   // Load group data
   const loadData = async () => {
-    const res = await getGroupData();
-    setData(Array.isArray(res) ? res : []);
+    try {
+      setLoading(true);
+      const res = await getGroupData();
+      setData(Array.isArray(res) ? res : []);
+    } catch (err) {
+      console.error("Failed to load data", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     const groupId = localStorage.getItem("activeGroupId");
 
-    // 🚫 Block dashboard access without active group
+    // 🚫 Block dashboard access without group
     if (!groupId) {
       navigate("/groups", { replace: true });
       return;
@@ -38,7 +46,7 @@ function Dashboard() {
     getMyRole().then((res) => setRole(res.role));
   }, [navigate]);
 
-  // Add / Update data
+  // Add / Update
   const submit = async () => {
     if (!title.trim() || !content.trim()) return;
 
@@ -74,7 +82,7 @@ function Dashboard() {
         <div className="w-full max-w-2xl bg-white rounded-xl shadow p-6">
           <h1 className="text-xl font-bold mb-4">Group Data</h1>
 
-          {/* ADMIN CONTROLS */}
+          {/* ADMIN INPUT */}
           {role === "admin" && (
             <div className="space-y-2 mb-6">
               <input
@@ -85,7 +93,7 @@ function Dashboard() {
               />
 
               <textarea
-                className="w-full border rounded-lg px-3 py-2 min-h-[120px]"
+                className="w-full border rounded-lg px-3 py-2 min-h-[120px] selectable"
                 placeholder="Content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -111,8 +119,16 @@ function Dashboard() {
             </div>
           )}
 
-          {/* EMPTY STATE */}
-          {data.length === 0 && (
+          {/* ⏳ LOADING STATE */}
+          {loading && (
+            <div className="text-center py-10 text-gray-500 animate-pulse">
+              <div className="text-3xl mb-2">⏳</div>
+              <p className="font-medium">Please wait a second…</p>
+            </div>
+          )}
+
+          {/* 📭 EMPTY STATE (ONLY AFTER LOADING) */}
+          {!loading && data.length === 0 && (
             <div className="text-center py-10 text-gray-500">
               <div className="text-4xl mb-2">📭</div>
               <p className="font-medium">No data yet</p>
@@ -124,48 +140,49 @@ function Dashboard() {
             </div>
           )}
 
-          {/* DATA LIST */}
-          {data.map((item) => (
-            <div
-              key={item._id}
-              className="bg-white border rounded-xl p-4 mb-3 shadow-sm hover:shadow transition"
-            >
-              <div className="flex items-start gap-3">
-                {/* TEXT */}
-                <div className="flex-1 min-w-0">
-                  <h2 className="font-semibold text-gray-800 break-words selectable">
-                    {item.title}
-                  </h2>
+          {/* 📄 DATA LIST */}
+          {!loading &&
+            data.map((item) => (
+              <div
+                key={item._id}
+                className="bg-white border rounded-xl p-4 mb-3 shadow-sm hover:shadow transition"
+              >
+                <div className="flex items-start gap-3">
+                  {/* TEXT */}
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-semibold text-gray-800 break-words selectable">
+                      {item.title}
+                    </h2>
 
-                  <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap break-words selectable">
-                    {item.content}
-                  </p>
-                </div>
-
-                {/* ACTIONS */}
-                {role === "admin" && (
-                  <div className="flex shrink-0 gap-2 text-sm">
-                    <button
-                      onClick={() => startEdit(item)}
-                      className="text-blue-600 hover:underline"
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      onClick={async () => {
-                        await deleteGroupData(item._id);
-                        loadData();
-                      }}
-                      className="text-red-600 hover:underline"
-                    >
-                      Delete
-                    </button>
+                    <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap break-words selectable">
+                      {item.content}
+                    </p>
                   </div>
-                )}
+
+                  {/* ACTIONS */}
+                  {role === "admin" && (
+                    <div className="flex shrink-0 gap-2 text-sm">
+                      <button
+                        onClick={() => startEdit(item)}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          await deleteGroupData(item._id);
+                          loadData();
+                        }}
+                        className="text-red-600 hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
     </PageWrapper>
