@@ -36,7 +36,6 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/groups" element={<MyGroups />} />
         <Route path="/groups" element={<ProtectedRoute><MyGroups /></ProtectedRoute>}/>
         <Route path="/dashboard"element={<ProtectedRoute><Dashboard /></ProtectedRoute>}/>
         <Route path="/members" element={<ProtectedRoute><GroupMembersPage /></ProtectedRoute>}/>

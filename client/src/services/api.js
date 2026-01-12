@@ -1,19 +1,25 @@
 const API_URL = import.meta.env.VITE_API_URL;
 
-const getHeaders = () => ({
+/* -------------------- HELPERS -------------------- */
+
+const authHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
+
+const groupHeaders = () => ({
+  ...authHeaders(),
   "x-group-id": localStorage.getItem("activeGroupId"),
 });
 
-export const addMember = async (data) =>
-  fetch(`${API_URL}/group/add-member`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...getHeaders(),
-    },
-    body: JSON.stringify(data),
-  }).then((res) => res.json());
+const handleResponse = async (res) => {
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || "Something went wrong");
+  }
+  return data;
+};
+
+/* -------------------- AUTH -------------------- */
 
 export const registerUser = async (data) => {
   const res = await fetch(`${API_URL}/auth/register`, {
@@ -21,17 +27,9 @@ export const registerUser = async (data) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  return res.json();
-};
 
-// export const loginUser = async (data) => {
-//   const res = await fetch(`${API_URL}/auth/login`, {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify(data),
-//   });
-//   return res.json();
-// };
+  return handleResponse(res);
+};
 
 export const loginUser = async (data) => {
   const res = await fetch(`${API_URL}/auth/login`, {
@@ -40,139 +38,143 @@ export const loginUser = async (data) => {
     body: JSON.stringify(data),
   });
 
-  const result = await res.json();
-
-  if (!res.ok) {
-    throw new Error(result.message || "Login failed");
-  }
-
-  return result;
+  return handleResponse(res);
 };
+
+/* -------------------- GROUPS -------------------- */
 
 export const getMyGroups = async () => {
   const res = await fetch(`${API_URL}/group/my-groups`, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
+    headers: authHeaders(),
   });
 
-  return res.json();
+  return handleResponse(res);
 };
 
-
-export const getGroupData = async () =>
-  fetch(`${API_URL}/data`, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-      "x-group-id": localStorage.getItem("activeGroupId"),
-    },
-  }).then((res) => res.json());
-
-export const createGroupData = async (data) =>
-  fetch(`${API_URL}/data`, {
+export const createGroup = async (data) => {
+  const res = await fetch(`${API_URL}/group/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-      "x-group-id": localStorage.getItem("activeGroupId"),
-    },
-    body: JSON.stringify(data),
-  }).then((res) => res.json());
-
-export const deleteGroupData = async (id) =>
-  fetch(`${API_URL}/data/${id}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-      "x-group-id": localStorage.getItem("activeGroupId"),
-    },
-  }).then((res) => res.json());
-
-export const getMyRole = async () =>
-  fetch(`${API_URL}/group/my-role`, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-      "x-group-id": localStorage.getItem("activeGroupId"),
-    },
-  }).then((res) => res.json());
-
-export const updateGroupData = async (id, data) =>
-fetch(`${API_URL}/data/${id}`, {
-  method: "PUT",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-    "x-group-id": localStorage.getItem("activeGroupId"),
-  },
-  body: JSON.stringify(data),
-}).then((res) => res.json());
-
-export const getGroupMembers = async () =>
-  fetch(`${API_URL}/group/members`, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-      "x-group-id": localStorage.getItem("activeGroupId"),
-    },
-  }).then((res) => res.json());
-
-export const addGroupMember = async (data) =>
-  fetch(`${API_URL}/group/add-member`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-      "x-group-id": localStorage.getItem("activeGroupId"),
-    },
-    body: JSON.stringify(data),
-  }).then((res) => res.json());
-
-  export const updateMemberRole = async (memberId, role) =>
-  fetch(`${API_URL}/group/member/${memberId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-      "x-group-id": localStorage.getItem("activeGroupId"),
-    },
-    body: JSON.stringify({ role }),
-  }).then((res) => res.json());
-
-export const removeMember = async (memberId) =>
-  fetch(`${API_URL}/group/member/${memberId}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-      "x-group-id": localStorage.getItem("activeGroupId"),
-    },
-  }).then((res) => res.json());
-
-  export const createGroup = async (data) => {
-  const res = await fetch("http://localhost:5000/api/group/create", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      ...authHeaders(),
     },
     body: JSON.stringify(data),
   });
 
-  return res.json();
+  return handleResponse(res);
 };
 
 export const deleteGroup = async (groupId) => {
   const res = await fetch(`${API_URL}/group/${groupId}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
+    headers: authHeaders(),
   });
 
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.message || "Delete failed");
-  }
-
-  return data;
+  return handleResponse(res);
 };
 
+export const getMyRole = async () => {
+  const res = await fetch(`${API_URL}/group/my-role`, {
+    headers: groupHeaders(),
+  });
+
+  return handleResponse(res);
+};
+
+/* -------------------- GROUP MEMBERS -------------------- */
+
+export const getGroupMembers = async () => {
+  const res = await fetch(`${API_URL}/group/members`, {
+    headers: groupHeaders(),
+  });
+
+  return handleResponse(res);
+};
+
+export const addGroupMember = async (data) => {
+  const res = await fetch(`${API_URL}/group/add-member`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      "x-group-id": localStorage.getItem("activeGroupId"),
+    },
+    body: JSON.stringify(data),
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    throw new Error(json.message || "Failed to add member");
+  }
+
+  return json;
+};
+
+
+export const updateMemberRole = async (memberId, role) => {
+  const res = await fetch(`${API_URL}/group/member/${memberId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...groupHeaders(),
+    },
+    body: JSON.stringify({ role }),
+  });
+
+  return handleResponse(res);
+};
+
+export const removeMember = async (memberId) => {
+  const res = await fetch(`${API_URL}/group/member/${memberId}`, {
+    method: "DELETE",
+    headers: groupHeaders(),
+  });
+
+  return handleResponse(res);
+};
+
+/* -------------------- GROUP DATA -------------------- */
+
+export const getGroupData = async () => {
+  const res = await fetch(`${API_URL}/data`, {
+    headers: groupHeaders(),
+  });
+
+  return handleResponse(res);
+};
+
+export const createGroupData = async (data) => {
+  const res = await fetch(`${API_URL}/data`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...groupHeaders(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse(res);
+};
+
+export const updateGroupData = async (id, data) => {
+  const res = await fetch(`${API_URL}/data/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...groupHeaders(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse(res);
+};
+
+export const deleteGroupData = async (id) => {
+  const res = await fetch(`${API_URL}/data/${id}`, {
+    method: "DELETE",
+    headers: groupHeaders(),
+  });
+
+  return handleResponse(res);
+};

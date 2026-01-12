@@ -2,47 +2,75 @@ import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import {
   getGroupMembers,
-  addGroupMember,
+  addGroupMember as addGroupMemberAPI,
   updateMemberRole,
   removeMember,
   getMyRole,
 } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 function GroupMembersPage() {
   const [members, setMembers] = useState([]);
   const [email, setEmail] = useState("");
   const [newRole, setNewRole] = useState("viewer");
-  const [role, setRole] = useState(null);
   const navigate = useNavigate();
 
+  /* 🔹 LOAD MEMBERS */
   const loadMembers = async () => {
-    const res = await getGroupMembers();
-    setMembers(Array.isArray(res) ? res : []);
+    try {
+      const res = await getGroupMembers();
+      setMembers(Array.isArray(res) ? res : []);
+    } catch (err) {
+      toast.error("Failed to load members");
+    }
   };
 
+  /* 🔹 CHECK ADMIN ROLE */
   useEffect(() => {
-    getMyRole().then((res) => {
-      if (res.role !== "admin") {
-        navigate("/dashboard"); // 🚫 no access
-      } else {
-        setRole(res.role);
-        loadMembers();
+    const checkRole = async () => {
+      try {
+        const res = await getMyRole();
+        if (res.role !== "admin") {
+          toast.error("Admin access required");
+          navigate("/groups");
+        } else {
+          loadMembers();
+        }
+      } catch {
+        navigate("/login");
       }
-    });
+    };
+
+    checkRole();
   }, []);
 
-  const addMember = async () => {
-    if (!email) return;
-    await addGroupMember({ email, role: newRole });
-    setEmail("");
-    setNewRole("viewer");
-    loadMembers();
+  /* 🔹 ADD MEMBER */
+  const handleAddMember = async () => {
+    if (!email.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+
+    try {
+      await addGroupMemberAPI({
+        email,
+        role: newRole,
+      });
+
+      toast.success("Member added successfully 🎉");
+      setEmail("");
+      setNewRole("viewer");
+      loadMembers();
+    } catch (err) {
+      toast.error("User not registered");
+    }
   };
 
   return (
     <>
       <Navbar />
+
       <div className="min-h-screen bg-slate-100 p-4 flex justify-center">
         <div className="w-full max-w-2xl bg-white rounded-xl shadow p-6">
           <h1 className="text-xl font-bold mb-4">Group Members</h1>
@@ -68,8 +96,8 @@ function GroupMembersPage() {
             </select>
 
             <button
-              onClick={addMember}
-              className="bg-blue-600 text-white px-4 py-2 rounded"
+              onClick={handleAddMember}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             >
               Add
             </button>
@@ -88,15 +116,22 @@ function GroupMembersPage() {
                   <select
                     value={m.role}
                     onChange={async (e) => {
-                      const newRole = e.target.value;
+                      const role = e.target.value;
 
-                      const confirmChange = window.confirm(
-                        `Change role of ${m.email} to "${newRole}"?`
-                      );
-                      if (!confirmChange) return;
+                      if (
+                        !window.confirm(
+                          `Change role of ${m.email} to "${role}"?`
+                        )
+                      )
+                        return;
 
-                      await updateMemberRole(m.id, newRole);
-                      loadMembers();
+                      try {
+                        await updateMemberRole(m.id, role);
+                        toast.success("Role updated");
+                        loadMembers();
+                      } catch (err) {
+                        toast.error(err.message || "Update failed");
+                      }
                     }}
                     className="border rounded px-2 py-1 text-sm"
                   >
@@ -108,12 +143,18 @@ function GroupMembersPage() {
                   <button
                     onClick={async () => {
                       if (
-                        window.confirm(
+                        !window.confirm(
                           `Remove ${m.email} from this group?`
                         )
-                      ) {
+                      )
+                        return;
+
+                      try {
                         await removeMember(m.id);
+                        toast.success("Member removed");
                         loadMembers();
+                      } catch (err) {
+                        toast.error(err.message || "Remove failed");
                       }
                     }}
                     className="text-red-600 text-sm hover:underline"
@@ -123,6 +164,12 @@ function GroupMembersPage() {
                 </div>
               </div>
             ))}
+
+            {members.length === 0 && (
+              <p className="text-sm text-gray-500 text-center">
+                No members found
+              </p>
+            )}
           </div>
         </div>
       </div>

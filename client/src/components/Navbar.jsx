@@ -1,16 +1,24 @@
+
+
+
+
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getMyGroups, getMyRole } from "../services/api";
 
 function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [groups, setGroups] = useState([]);
   const [role, setRole] = useState(null);
   const [activeGroupId, setActiveGroupId] = useState(
     localStorage.getItem("activeGroupId") || ""
   );
 
-  // Load groups
+  /* ===============================
+     LOAD GROUPS (ONCE)
+  =============================== */
   useEffect(() => {
     const loadGroups = async () => {
       try {
@@ -24,7 +32,9 @@ function Navbar() {
     loadGroups();
   }, []);
 
-  // Load role (depends on active group)
+  /* ===============================
+     LOAD ROLE (WHEN GROUP CHANGES)
+  =============================== */
   useEffect(() => {
     if (!activeGroupId) return;
 
@@ -34,30 +44,40 @@ function Navbar() {
         setRole(res.role);
       } catch (err) {
         console.error("Failed to load role", err);
+        setRole(null);
       }
     };
 
     loadRole();
-  }, [activeGroupId]);
+  }, [activeGroupId, location.pathname]);
 
+  /* ===============================
+     SWITCH GROUP
+  =============================== */
   const switchGroup = (groupId) => {
     if (!groupId) return;
+
     localStorage.setItem("activeGroupId", groupId);
-    navigate("/dashboard"); // SPA navigation (no reload)
+    setActiveGroupId(groupId);
+
+    // SPA navigation (NO reload)
+    navigate("/dashboard", { replace: true });
   };
 
-
-  // Logout
+  /* ===============================
+     LOGOUT (ONLY WHEN CLICKED)
+  =============================== */
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("activeGroupId");
     localStorage.removeItem("userEmail");
-    navigate("/login");
+
+    navigate("/login", { replace: true });
   };
 
   return (
-    <div className="sticky top-0 z-50 w-full h-14 bg-white border-b flex items-center justify-between px-4 sm:px-6">
-      {/* App name */}
+    <header className="sticky top-0 z-50 w-full h-14 bg-white border-b flex items-center justify-between px-4 sm:px-6">
+      {/* LOGO */}
       <h1
         className="font-bold text-lg text-blue-600 cursor-pointer"
         onClick={() => navigate("/groups")}
@@ -65,13 +85,14 @@ function Navbar() {
         SafeCollab
       </h1>
 
+      {/* RIGHT SIDE */}
       <div className="flex items-center gap-3">
-        {/* Group Switcher */}
+        {/* GROUP SWITCHER (HIDDEN ON MOBILE) */}
         {groups.length > 0 && (
           <select
             value={activeGroupId}
             onChange={(e) => switchGroup(e.target.value)}
-            className="border rounded px-2 py-1 text-sm"
+            className="hidden sm:block border rounded px-2 py-1 text-sm"
           >
             <option value="" disabled>
               Select group
@@ -84,7 +105,7 @@ function Navbar() {
           </select>
         )}
 
-        {/* Members button (ADMIN ONLY) */}
+        {/* MEMBERS (ADMIN ONLY) */}
         {role === "admin" && activeGroupId && (
           <button
             onClick={() => navigate("/members")}
@@ -94,7 +115,7 @@ function Navbar() {
           </button>
         )}
 
-        {/* Logout */}
+        {/* LOGOUT */}
         <button
           onClick={logout}
           className="text-sm text-red-600 hover:underline"
@@ -102,7 +123,7 @@ function Navbar() {
           Logout
         </button>
       </div>
-    </div>
+    </header>
   );
 }
 
