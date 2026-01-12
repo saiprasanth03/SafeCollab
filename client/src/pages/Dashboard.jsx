@@ -129,7 +129,7 @@ function Dashboard() {
             <div className="flex justify-between items-start gap-3">
               <div>
                 <h2 className="font-semibold text-gray-800">{item.title}</h2>
-                <p className="text-sm text-gray-600 mt-1">{item.content}</p>
+                <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{item.content}</p>
               </div>
 
               {role === "admin" && (
